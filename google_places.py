@@ -17,7 +17,8 @@ HEADERS = {
         "places.formattedAddress,"
         "places.location,"
         "places.rating,"
-        "places.userRatingCount"
+        "places.userRatingCount,"
+        "places.types"
 }
 
 

@@ -1,29 +1,10 @@
-import os
 import sqlite3
 import time
-import requests
 import pandas as pd
 from tqdm import tqdm
-from dotenv import load_dotenv
 from google_places import search_places
 
-load_dotenv()
 
-API_KEY = os.getenv("GOOGLE_API_KEY")
-
-URL = "https://places.googleapis.com/v1/places:searchText"
-
-HEADERS = {
-    "Content-Type": "application/json",
-    "X-Goog-Api-Key": API_KEY,
-    "X-Goog-FieldMask":
-        "places.id,"
-        "places.displayName,"
-        "places.formattedAddress,"
-        "places.location,"
-        "places.rating,"
-        "places.userRatingCount"
-}
 
 conn = sqlite3.connect("fortune.db")
 cur = conn.cursor()
@@ -31,6 +12,54 @@ cur = conn.cursor()
 regions = pd.read_csv("data/regions_all.csv")
 keywords = pd.read_csv("data/keywords.csv")
 
+BAD_WORDS = [
+    "CU",
+    "GS25",
+    "세븐일레븐",
+    "이마트",
+    "롯데마트",
+    "주민센터",
+    "구청",
+    "시청",
+    "학교",
+    "병원",
+    "약국",
+    "은행",
+    "세무",
+    "회계",
+    "Toys",
+    "Cafe",
+    "Coffee",
+    "Street",
+    "Observatory",
+    "Office",
+    "Restaurant",
+    "School",
+    "Hospital"
+    "Office"
+]
+
+GOOD_WORDS = [
+    "점집",
+    "신점",
+    "사주",
+    "타로",
+    "철학관",
+    "철학원",
+    "명리",
+    "역학",
+    "작명",
+    "운세",
+    "보살",
+    "신당",
+    "도령",
+    "선녀",
+    "암",
+    "정사",
+    "궁",
+    "법사",
+    "무당"
+]
 print("=" * 50)
 print(f"검색 지역 수 : {len(regions)}")
 print(f"키워드 수 : {len(keywords)}")
@@ -64,6 +93,18 @@ for _, r in tqdm(
         duplicate = 0
 
         for place in places:
+            name = place["displayName"]["text"]
+            print(name)
+            print("-" * 50)
+
+
+
+            if any(word.lower() in name.lower() for word in BAD_WORDS):
+                print(f"제외 : {name}")
+                continue
+            if not any(word in name for word in GOOD_WORDS):
+                print(f"무시 : {name}")
+                continue
             cur.execute("""
             INSERT OR IGNORE INTO places
             (
@@ -80,7 +121,7 @@ for _, r in tqdm(
             VALUES(?,?,?,?,?,?,?,?,?)
             """, (
                 place.get("id"),
-                place["displayName"]["text"],
+                name,
                 place.get("formattedAddress"),
                 place.get("location", {}).get("latitude"),
                 place.get("location", {}).get("longitude"),
